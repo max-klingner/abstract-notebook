@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  interpolate-size: allow-keywords;
+}
+
+@theme {
+  --color-board: #2d363b;
+  --color-ink: #f4f1ea;
+  --color-surface: #1a1a1a;
+  --color-accent: #90b77e;
+  --color-gold: #d8a657;
+  --color-green: #a9b665;
+  --font-note: Menlo, Monaco, "Courier New", monospace;
+}
+
+#todo-panel {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-ink) 30%, transparent) transparent;
+}
+
+#tag-panel, #todo-panel, #search-panel {
+  width: 2.25rem;
+  height: 2.25rem;
+  background-color: var(--color-accent);
+  overflow: clip;
+  transition:
+    width 0.25s,
+    height 0.25s,
+    background-color 0.25s,
+    overlay 0.25s allow-discrete,
+    display 0.25s allow-discrete;
+
+  &:popover-open {
+    width: fit-content;
+    height: fit-content;
+    background-color: var(--color-surface);
+
+    @starting-style {
+      width: 2.25rem;
+      height: 2.25rem;
+      background-color: var(--color-accent);
+    }
+  }
+}
+
+#todo-panel:popover-open {
+  width: min(90vw, 22rem);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+#search-panel:popover-open {
+  height: 2.25rem;
+}

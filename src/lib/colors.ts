@@ -1,0 +1,1 @@
+export const TAG_COLORS = ["#b4c8de", "#81a1c1", "#5e81ac", "#435d7d", "#e0a4a9", "#bf616a", "#8f434b"];
