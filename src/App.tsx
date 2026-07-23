@@ -2,12 +2,13 @@ import { useState, useRef } from "react";
 import { useData } from "./lib/useData";
 import { fmtStamp } from "./lib/format";
 import { TODO_RE } from "./lib/todos";
+import { useLongPress } from "./lib/useLongPress";
 import TagPanel from "./components/TagPanel";
 import TodoPanel from "./components/TodoPanel";
 import SearchPanel from "./components/SearchPanel";
 import SettingsPanel from "./components/SettingsPanel";
 import Minimap from "./components/Minimap";
-import ConfirmPanel from "./components/ContextMenu";
+import ContextMenu from "./components/ContextMenu";
 import { type Tag } from "./lib/store";
 import { type MenuReq } from "./components/ContextMenu";
 
@@ -31,8 +32,15 @@ const todoBackdrop = (text: string) =>
 
 export default function App() {
   const [focusedId, setFocusedId] = useState<number | null>(null);
-  const drag = useRef<{ px: number; py: number; moved: boolean } | null>(null);
+  const drag = useRef<{
+    id: number;
+    px: number;
+    py: number;
+    moved: boolean;
+  } | null>(null);
   const pan = useRef<{ px: number; py: number } | null>(null);
+  const touches = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const lp = useLongPress();
 
   const [linkFrom, setLinkFrom] = useState<{
     id: number;
@@ -115,7 +123,7 @@ export default function App() {
 
   return (
     <main
-      className={`relative w-screen h-screen overflow-hidden bg-board select-none ${selectedTag ? "cursor-crosshair" : ""}`}
+      className={`touch-none relative w-screen h-dvh overflow-hidden bg-board select-none ${selectedTag ? "cursor-crosshair" : ""}`}
       onDoubleClick={(e) => {
         if (e.target !== e.currentTarget) return; // Ignore double clicks on thoughts
         const rect = e.currentTarget.getBoundingClientRect();
@@ -139,7 +147,50 @@ export default function App() {
           setRegionDraft({ x1: x, y1: y, x2: x, y2: y });
           return;
         }
+        touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        e.currentTarget.setPointerCapture(e.pointerId);
+        if (touches.current.size === 2) {
+          pan.current = null;
+          lp.end(); // second finger means pinch, not hold
+          return;
+        }
         pan.current = { px: e.clientX, py: e.clientY };
+        const { clientX, clientY, pointerId } = e;
+        lp.begin(e, () => {
+          pan.current = null;
+          touches.current.delete(pointerId); // this finger is now the menu's, not the camera's
+          const p = screenToWorld(clientX, clientY);
+          const hit = [...data.regions]
+            .reverse()
+            .find(
+              (r) =>
+                p.x >= r.x &&
+                p.x <= r.x + r.w &&
+                p.y >= r.y &&
+                p.y <= r.y + r.h,
+            );
+          setMenuReq({
+            x: clientX,
+            y: clientY,
+            items: hit
+              ? [
+                  {
+                    label: "Delete Region",
+                    action: () => removeRegion(hit.id),
+                    danger: true,
+                  },
+                ]
+              : [
+                  {
+                    label: "New thought here",
+                    action: () => {
+                      const id = createThought(p.x, p.y);
+                      setFocusedId(id);
+                    },
+                  },
+                ],
+          });
+        });
       }}
       onPointerMove={(e) => {
         if (regionDraft !== null) {
@@ -150,6 +201,33 @@ export default function App() {
           });
           return;
         }
+        if (!touches.current.has(e.pointerId)) return;
+        lp.move(e);
+        if (touches.current.size === 2) {
+          const [a, b] = [...touches.current.values()];
+          const oldDist = Math.hypot(a.x - b.x, a.y - b.y);
+          const oldMid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+
+          touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+          const [a2, b2] = [...touches.current.values()];
+          const newDist = Math.hypot(a2.x - b2.x, a2.y - b2.y);
+          const newMid = { x: (a2.x + b2.x) / 2, y: (a2.y + b2.y) / 2 };
+
+          if (oldDist === 0) return;
+
+          const newZoom = Math.max(
+            0.25,
+            Math.min(camera.zoom * (newDist / oldDist), 4),
+          );
+          setCamera((c) => ({
+            zoom: newZoom,
+            x: oldMid.x / c.zoom + c.x - newMid.x / newZoom,
+            y: oldMid.y / c.zoom + c.y - newMid.y / newZoom,
+          }));
+          return;
+        }
+        touches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
         if (pan.current === null) return;
         const dx = e.clientX - pan.current.px;
         const dy = e.clientY - pan.current.py;
@@ -160,7 +238,8 @@ export default function App() {
         }));
         pan.current = { px: e.clientX, py: e.clientY };
       }}
-      onPointerUp={() => {
+      onPointerUp={(e) => {
+        lp.end();
         if (regionDraft !== null) {
           if (selectedTag && draftRect && draftRect.w > 8 && draftRect.h > 8)
             createRegion(
@@ -174,6 +253,14 @@ export default function App() {
           setRegionDraft(null);
           return;
         }
+        touches.current.delete(e.pointerId);
+        const rest = [...touches.current.values()];
+        pan.current =
+          rest.length === 1 ? { px: rest[0].x, py: rest[0].y } : null;
+      }}
+      onPointerCancel={(e) => {
+        lp.end();
+        touches.current.delete(e.pointerId);
         pan.current = null;
       }}
       onWheel={(e) => {
@@ -209,12 +296,6 @@ export default function App() {
         });
       }}
     >
-      <button
-        className="absolute bottom-3 left-3 z-10 text-ink/40"
-        onClick={() => flyTo(0, 0)}
-      >
-        origin
-      </button>
       <div
         className="absolute left-0 top-0 origin-top-left"
         style={{
@@ -255,7 +336,8 @@ export default function App() {
         <svg
           width={1}
           height={1}
-          className="pointer-events-none absolute left-0 top-0 overflow-visible"
+          vectorEffect="non-scaling-stroke"
+          className="pointer-events-none absolute left-0 top-0 overflow-visible pointer-coarse:[stroke-widht:2rem]"
         >
           {data.links.map((l) => {
             const fromThought = data.thoughts.find((t) => t.id === l.fromId);
@@ -283,7 +365,8 @@ export default function App() {
                   fill="none"
                   stroke="transparent"
                   strokeWidth={12}
-                  className="pointer-events-auto cursor-pointer"
+                  vectorEffect="non-scaling-stroke"
+                  className="pointer-events-auto cursor-pointer pointer-coarse:stroke-[2rem]"
                   onContextMenu={(e) => {
                     e.preventDefault();
                     setMenuReq({
@@ -298,6 +381,26 @@ export default function App() {
                       ],
                     });
                   }}
+                  onPointerDown={(e) => {
+                    if (e.pointerType !== "touch") return;
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    const { clientX, clientY } = e;
+                    lp.begin(e, () =>
+                      setMenuReq({
+                        x: clientX,
+                        y: clientY,
+                        items: [
+                          {
+                            label: "Delete Link",
+                            action: () => removeLink(l.fromId, l.toId),
+                            danger: true,
+                          },
+                        ],
+                      }),
+                    );
+                  }}
+                  onPointerMove={(e) => lp.move(e)}
+                  onPointerUp={() => lp.end()}
                 />
               </g>
             );
@@ -318,19 +421,61 @@ export default function App() {
                 return; // No drag, no capture
               }
               if (focusedId === t.id) return;
+              if (drag.current !== null) return;
               e.currentTarget.setPointerCapture(e.pointerId); // Route future point events to this div so cursor cant outrun it
-              drag.current = { px: e.clientX, py: e.clientY, moved: false };
+              drag.current = {
+                id: e.pointerId,
+                px: e.clientX,
+                py: e.clientY,
+                moved: false,
+              };
+              const el = e.currentTarget;
+              const { clientX, clientY } = e;
+              lp.begin(e, () => {
+                if (drag.current?.moved) return; // became a drag, no menu
+                drag.current = null; // stop from turning into drag on release
+                setMenuReq({
+                  x: clientX,
+                  y: clientY,
+                  items: [
+                    {
+                      label: "Link from here",
+                      action: () =>
+                        setLinkFrom({
+                          id: t.id,
+                          dx: el.offsetWidth,
+                          dy: el.offsetHeight,
+                        }),
+                    },
+                    {
+                      label: "Delete thought",
+                      action: () => removeThought(t.id),
+                      danger: true,
+                    },
+                  ],
+                });
+              });
             }}
             onPointerMove={(e) => {
-              if (drag.current === null) return;
+              lp.move(e);
+              if (drag.current === null || drag.current.id !== e.pointerId)
+                return;
               const dx = e.clientX - drag.current.px;
               const dy = e.clientY - drag.current.py;
               if (!drag.current.moved && Math.hypot(dx, dy) < 4) return;
               moveThought(t.id, t.x + dx / camera.zoom, t.y + dy / camera.zoom);
-              drag.current = { px: e.clientX, py: e.clientY, moved: true };
+              drag.current = {
+                id: e.pointerId,
+                px: e.clientX,
+                py: e.clientY,
+                moved: true,
+              };
             }}
             onPointerUp={(e) => {
-              if (drag.current && !drag.current.moved) {
+              lp.end();
+              if (drag.current === null || drag.current.id !== e.pointerId)
+                return;
+              if (!drag.current.moved) {
                 setFocusedId(t.id);
                 e.currentTarget.querySelector("textarea")?.focus();
               }
@@ -407,7 +552,7 @@ export default function App() {
         tags={data.tags}
         camera={camera}
       />
-      <ConfirmPanel req={menuReq} close={() => setMenuReq(null)} />
+      <ContextMenu req={menuReq} close={() => setMenuReq(null)} />
     </main>
   );
 }

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import ColorSelect from "./ColorSelect";
-import ConfirmPanel from "./ContextMenu";
+import ContextMenu from "./ContextMenu";
 import { type Tag } from "../lib/store";
 import { type MenuReq } from "./ContextMenu";
 
@@ -60,7 +60,7 @@ export default function TagPanel({
         onToggle={(e) => {
           if (e.newState === "closed") setEditingId(null);
         }}
-        className="fixed inset-auto top-3 left-1/2 m-0 -translate-x-1/2 open:flex flex-col gap-1
+        className="fixed inset-auto top-13 sm:top-3 left-1/2 m-0 -translate-x-1/2 open:flex flex-col gap-1
         rounded-md border border-ink/15 bg-surface p-2 shadow-md shadow-black/30"
       >
         {tags.map((t) => (
@@ -95,7 +95,7 @@ export default function TagPanel({
               </button>
               <button
                 onClick={() => setEditingId(t.id)}
-                className="ml-auto cursor-pointer text-ink/40 opacity-30 transition group-hover:opacity-100 hover:text-ink"
+                className="ml-auto cursor-pointer pointer-coarse:px-2 pointer-coarse:opacity-100 pointer-coarse:text-[1.8rem] pointer-coarse:leading-none text-ink/40 opacity-30 transition group-hover:opacity-100 hover:text-ink"
               >
                 ✎
               </button>
@@ -116,7 +116,7 @@ export default function TagPanel({
                     ],
                   });
                 }}
-                className="cursor-pointer text-ink/40 text-xs pl-1 opacity-50 transition group-hover:opacity-100 hover:text-red-400"
+                className="cursor-pointer text-ink/40 text-xs pl-1 opacity-50 transition group-hover:opacity-100 hover:text-red-400 pointer-coarse:opacity-100 pointer-coarse:px-2 pointer-coarse:text-[1.8rem] pointer-coarse:leading-none"
               >
                 ✕
               </button>
@@ -130,7 +130,7 @@ export default function TagPanel({
           +
         </button>
       </div>
-      <ConfirmPanel req={menuReq} close={() => setMenuReq(null)} />
+      <ContextMenu req={menuReq} close={() => setMenuReq(null)} />
     </div>
   );
 }

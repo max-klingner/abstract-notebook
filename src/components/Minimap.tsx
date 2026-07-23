@@ -71,7 +71,11 @@ export default function Minimap({
   );
 
   return (
-    <div className="absolute right-3 top-3 z-10 h-28 w-44 overflow-hidden rounded-md border border-ink/15 bg-board shadow-sm shadow-black/30">
+    <div
+      className="absolute right-3 bottom-3 sm:top-3 sm:bottom-auto z-10 h-20 w-32
+      sm:h-28 sm:w-44 overflow-hidden rounded-md border border-ink/15
+      bg-board shadow-sm shadow-black/30"
+    >
       <svg
         viewBox={`${bb.x} ${bb.y} ${bb.w} ${bb.h}`}
         preserveAspectRatio="xMidYMid meet"

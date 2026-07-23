@@ -47,7 +47,7 @@ export default function TodoPanel({
       <div
         id="todo-panel"
         popover="auto"
-        className="fixed inset-auto top-3 left-[calc(50%-3rem)] m-0 -translate-x-1/2 open:flex flex-col
+        className="fixed inset-auto top-13 sm:top-3 left-1/2 m-0 sm:left-[calc(50%-3rem)] -translate-x-1/2 open:flex flex-col
         rounded-md border border-ink/15 bg-surface py-1 shadow-md shadow-black/30"
       >
         {todos.length === 0 ? (

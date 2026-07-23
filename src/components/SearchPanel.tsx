@@ -90,7 +90,7 @@ export default function SearchPanel({
             inputRef.current?.select();
           }
         }}
-        className="fixed inset-auto top-3 left-[calc(50%+3rem)] m-0 -translate-x-4.5 open:flex items-center gap-2
+        className="fixed inset-auto top-13 sm:top-3 left-1/2 -translate-x-1/2 sm:left-[calc(50%+3rem)] sm:-translate-x-4.5 m-0 open:flex items-center gap-2
         rounded-md border border-ink/15 bg-surface px-3 py-1.5 shadow-md shadow-black/30"
       >
         <input
