@@ -9,7 +9,7 @@ export default function TodoPanel({
   flyTo,
 }: {
   thoughts: Thought[];
-  setThoughtText: (id: number, text: string) => void;
+  setThoughtText: (id: string, text: string) => void;
   flyTo: (x: number, y: number) => void;
 }) {
   const todos = collectTodos(thoughts);

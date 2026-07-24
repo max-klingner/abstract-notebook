@@ -16,12 +16,12 @@ export default function TagPanel({
   tags: Tag[];
   setSelectedTag: (tag: Tag | null) => void;
   addTag: () => void;
-  removeTag: (id: number) => void;
-  setTagDescription: (id: number, description: string) => void;
-  setTagColor: (id: number, color: string) => void;
+  removeTag: (id: string) => void;
+  setTagDescription: (id: string, description: string) => void;
+  setTagColor: (id: string, color: string) => void;
   selectedTag: Tag | null;
 }) {
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [menuReq, setMenuReq] = useState<MenuReq | null>(null);
 

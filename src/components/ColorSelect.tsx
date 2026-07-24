@@ -4,8 +4,8 @@ export default function ColorSelect({
   tagId,
   setTagColor,
 }: {
-  tagId: number;
-  setTagColor: (id: number, color: string) => void;
+  tagId: string;
+  setTagColor: (id: string, color: string) => void;
 }) {
   return (
     <div className="flex self-end gap-1.5 rounded-full border border-ink/10 bg-black/30 px-2 py-1.5">

@@ -2,43 +2,60 @@ const LOCAL_STORAGE_KEY = "abstract:v1";
 let saveTimer = 0;
 
 export type Thought = {
-	id: number;
-	x: number;
-	y: number;
+  id: string;
+  x: number;
+  y: number;
   text: string;
   createdAt: number; // Epoch ms, convert to Date at UI edge
-}
+  updatedAt: number;
+};
 
 export type Link = {
-  fromId: number;
-  toId: number;
+  fromId: string;
+  toId: string;
   dx: number; // dx and dy offset where the drawn link starts from in the "from" thought
   dy: number;
-}
+  updatedAt: number;
+};
 
 export type Tag = {
-  id: number;
+  id: string;
   description: string;
   color: string; // hex value
-}
+  updatedAt: number;
+};
 
 export type Region = {
-  id: number;
-  tagId: number;
+  id: string;
+  tagId: string;
   x: number; // x & y are top left coords
   y: number;
   w: number; // Width
   h: number; // Height
-}
+  updatedAt: number;
+};
+
+export type Tombstone = {
+  key: string;
+  deletedAt: number;
+};
 
 export type Data = {
-  version: 1;
-  nextId: number; // Shared by everything for ids to ensure no overlapping
+  version: 2;
   thoughts: Thought[];
   links: Link[];
   tags: Tag[];
   regions: Region[];
-}
+  tombstones: Tombstone[];
+};
+
+export const newId = () => crypto.randomUUID();
+
+export const thoughtKey = (id: string) => `thought:${id}`;
+export const linkKey = (fromId: string, toId: string) =>
+  `link:${fromId}:${toId}`;
+export const tagKey = (id: string) => `tag:${id}`;
+export const regionKey = (id: string) => `region:${id}`;
 
 const WELCOME = `Welcome to abstract!
 Double click in an empty space to create a thought.
@@ -49,33 +66,45 @@ Write the word TODO in a thought and it becomes a task you can track from the ch
 
 function getSeed(): Data {
   return {
-    version: 1,
-    nextId: 1,
-    thoughts: [{id: 0, x: 50, y: 170, text: WELCOME, createdAt: Date.now() }],
+    version: 2,
+    thoughts: [
+      {
+        id: newId(),
+        x: 50,
+        y: 170,
+        text: WELCOME,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    ],
     links: [],
     tags: [],
-    regions: []
-  }
+    regions: [],
+    tombstones: [],
+  };
 }
 
 function isData(d: unknown): d is Data {
   return (
-    typeof d === "object" && d !== null &&
-    (d as Data).version === 1 &&
-    typeof (d as Data).nextId === "number" &&
+    typeof d === "object" &&
+    d !== null &&
+    (d as Data).version === 2 &&
     Array.isArray((d as Data).thoughts) &&
     Array.isArray((d as Data).links) &&
     Array.isArray((d as Data).tags) &&
-    Array.isArray((d as Data).regions)
+    Array.isArray((d as Data).regions) &&
+    Array.isArray((d as Data).tombstones)
   );
 }
 
 export function loadData(): Data {
   try {
-    const d: unknown = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) ?? "");
+    const d: unknown = JSON.parse(
+      localStorage.getItem(LOCAL_STORAGE_KEY) ?? "",
+    );
     if (isData(d)) return d;
   } catch {}
-  return getSeed()
+  return getSeed();
 }
 
 export function saveData(d: Data) {

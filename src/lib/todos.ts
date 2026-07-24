@@ -2,7 +2,7 @@ import { type Thought } from "./store";
 
 export const TODO_RE = /\btodo\b✓?/i;
 
-export type Todo = { thoughtId: number; line: number; text: string; done: boolean };
+export type Todo = { thoughtId: string; line: number; text: string; done: boolean };
 
 export const collectTodos = (thoughts: Thought[]): Todo[] =>
   thoughts

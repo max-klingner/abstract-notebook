@@ -61,7 +61,7 @@ export default function Minimap({
     h: maxY - minY + pad * 2,
   };
 
-  const colorOf = (tagId: number) =>
+  const colorOf = (tagId: string) =>
     tags.find((t) => t.id === tagId)?.color ?? "#9daec1";
 
   const openTodoIds = new Set(
