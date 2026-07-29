@@ -66,6 +66,7 @@ export default function App() {
 
   const {
     data,
+    syncNow,
     importBoard,
     createThought,
     moveThought,
@@ -421,7 +422,7 @@ export default function App() {
         flyTo={flyTo}
       />
       <SearchPanel thoughts={data.thoughts} flyTo={flyTo} />
-      <SettingsPanel data={data} importBoard={importBoard} />
+      <SettingsPanel data={data} syncNow={syncNow} importBoard={importBoard} />
       <Minimap
         thoughts={data.thoughts}
         regions={data.regions}

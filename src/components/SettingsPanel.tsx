@@ -1,13 +1,19 @@
-import { useRef } from "react";
+import { useState, useRef } from "react";
 import { type Data, exportJson } from "../lib/store";
 
 export default function SettingsPanel({
   data,
+  syncNow,
   importBoard,
 }: {
   data: Data;
+  syncNow: () => Promise<boolean>;
   importBoard: (raw: string) => boolean;
 }) {
+  const [syncState, setSyncState] = useState<
+    "idle" | "syncing" | "ok" | "error"
+  >("idle");
+
   const fileRef = useRef<HTMLInputElement>(null);
 
   const download = () => {
@@ -22,8 +28,14 @@ export default function SettingsPanel({
   const pickFile = async (file: File | undefined) => {
     if (!file) return;
     const raw = await file.text();
-    if (!window.confirm("Replace everything on this board with the imported file?")) return;
-    if (!importBoard(raw)) alert("That file doesn't look like an abstract export.");
+    if (
+      !window.confirm(
+        "Replace everything on this board with the imported file?",
+      )
+    )
+      return;
+    if (!importBoard(raw))
+      alert("That file doesn't look like an abstract export.");
   };
 
   return (
@@ -67,6 +79,27 @@ export default function SettingsPanel({
           className="block w-full cursor-pointer px-3 py-1 text-left text-sm text-ink/80 transition hover:bg-ink/10"
         >
           Import board…
+        </button>
+        <button
+          onClick={async () => {
+            setSyncState("syncing");
+            try {
+              await syncNow();
+              setSyncState("ok");
+            } catch (e) {
+              console.error("sync:", e);
+              setSyncState("error");
+            }
+          }}
+          className="block w-full cursor-pointer px-3 py-1 text-left text-sm text-ink/80 transition hover:bg-ink/10"
+        >
+          {syncState === "syncing"
+            ? "Syncing…"
+            : syncState === "ok"
+              ? "Synced ✓"
+              : syncState === "error"
+                ? "Sync failed — retry"
+                : "Sync now"}
         </button>
       </div>
       <input

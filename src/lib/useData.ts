@@ -8,6 +8,8 @@ import {
   regionKey,
 } from "./store";
 import { type Data, loadData, saveData } from "./store";
+import { defaultDeviceName, loadCreds, startGroup, syncOnce } from "./sync";
+import { merge } from "./merge";
 
 export function useData() {
   const [data, setData] = useState<Data>(loadData);
@@ -203,5 +205,14 @@ export function useData() {
     [update],
   );
 
-  return { data, ...actions };
+  const syncNow = async (): Promise<boolean> => {
+    const creds = loadCreds() ?? (await startGroup(data, defaultDeviceName()));
+    const merged = await syncOnce(data, creds);
+    // merge into whatever is current rather than replacing — edits made
+    // while the network round-trip was in flight must survive
+    update((d) => merge(d, merged));
+    return true;
+  };
+
+  return { data, syncNow, ...actions };
 }
