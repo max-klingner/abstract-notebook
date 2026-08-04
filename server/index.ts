@@ -1,7 +1,7 @@
 import { Hono, type Context, type Next } from "hono";
 import { bodyLimit } from "hono/body-limit"
 import { serve } from "@hono/node-server";
-import { deleteDevice, getDevice, getGroup, getPairing, insertDevice, insertGroup, insertPairing, listDevices, touchDevice, updateBoard, usePairing, type DeviceRow, type GroupRow, type PairingRow } from "./db.ts";
+import { deleteDevice, deleteDevicesForGroup, deleteGroup, deletePairingsForGroup, getDevice, getGroup, getPairing, insertDevice, insertGroup, insertPairing, listDevices, touchDevice, updateBoard, usePairing, type DeviceRow, type GroupRow, type PairingRow } from "./db.ts";
 import { hashToken, newToken, tokenMatches } from "./crypto.ts";
 
 type Env = { Variables: { groupId: string; deviceId: string } };
@@ -37,6 +37,16 @@ app.post("/api/groups", async (c) => {
   insertGroup.run(groupId, board, Date.now());
   insertDevice.run(deviceId, groupId, hashToken(token), deviceName, Date.now());
   return c.json({ groupId, deviceId, token });
+});
+
+// leaving as the last device: destroy the group and its server-side copy.
+// per-route middleware, since POST /api/groups must stay public
+app.delete("/api/groups", requireDevice, (c) => {
+  const groupId = c.get("groupId");
+  deletePairingsForGroup.run(groupId);
+  deleteDevicesForGroup.run(groupId);
+  deleteGroup.run(groupId);
+  return c.json({ ok: true });
 });
 
 app.get("/api/board", (c) => {

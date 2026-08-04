@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useData } from "./lib/useData";
+import { useSync } from "./lib/useSync";
 import { useLongPress } from "./lib/useLongPress";
 import TagPanel from "./components/TagPanel";
 import TodoPanel from "./components/TodoPanel";
@@ -8,6 +9,7 @@ import SettingsPanel from "./components/SettingsPanel";
 import Minimap from "./components/Minimap";
 import ContextMenu from "./components/ContextMenu";
 import ThoughtCard, { type DragState } from "./components/ThoughtCard";
+import DevicesPanel from "./components/DevicesPanel";
 import { type Tag } from "./lib/store";
 import { type MenuReq } from "./components/ContextMenu";
 
@@ -66,7 +68,7 @@ export default function App() {
 
   const {
     data,
-    syncNow,
+    update,
     importBoard,
     createThought,
     moveThought,
@@ -82,6 +84,19 @@ export default function App() {
     setTagColor,
     removeTag,
   } = useData();
+
+  const {
+    creds,
+    syncNow,
+    refreshCreds,
+    syncState,
+    setSyncState,
+    dirty,
+    pairStatus,
+    setPairStatus,
+    revoked,
+    setRevoked,
+  } = useSync(data, update);
 
   const draftRect = regionDraft && {
     x: Math.min(regionDraft.x1, regionDraft.x2),
@@ -422,13 +437,38 @@ export default function App() {
         flyTo={flyTo}
       />
       <SearchPanel thoughts={data.thoughts} flyTo={flyTo} />
-      <SettingsPanel data={data} syncNow={syncNow} importBoard={importBoard} />
+      <SettingsPanel
+        data={data}
+        synced={creds !== null}
+        syncNow={syncNow}
+        syncState={syncState}
+        setSyncState={setSyncState}
+        dirty={dirty}
+        importBoard={importBoard}
+      />
+      <DevicesPanel creds={creds} onCredsChanged={refreshCreds} />
       <Minimap
         thoughts={data.thoughts}
         regions={data.regions}
         tags={data.tags}
         camera={camera}
       />
+      {(pairStatus === "pairing" || pairStatus === "error" || revoked) && (
+        <button
+          onClick={() => {
+            setPairStatus("none");
+            setRevoked(false);
+          }}
+          className="fixed bottom-3 left-1/2 z-20 -translate-x-1/2 cursor-pointer rounded-md border
+            border-ink/15 bg-surface px-4 py-2 text-sm text-ink/80 shadow-md shadow-black/30"
+        >
+          {pairStatus === "pairing"
+            ? "Pairing this device…"
+            : pairStatus === "error"
+              ? "That pairing link is invalid or expired"
+              : "This device was removed from its sync group — syncing is off"}
+        </button>
+      )}
       <ContextMenu req={menuReq} close={() => setMenuReq(null)} />
     </main>
   );

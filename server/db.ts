@@ -74,6 +74,13 @@ export const insertPairing = db.prepare(
   "INSERT INTO pairings (id, group_id, secret_hash, expires_at) VALUES (?, ?, ?, ?)",
 );
 export const getPairing = db.prepare("SELECT * FROM pairings WHERE id = ?");
+export const deletePairingsForGroup = db.prepare(
+  "DELETE FROM pairings WHERE group_id = ?",
+);
+export const deleteDevicesForGroup = db.prepare(
+  "DELETE FROM devices WHERE group_id = ?",
+);
+export const deleteGroup = db.prepare("DELETE FROM groups WHERE id = ?");
 export const usePairing = db.prepare(
   "UPDATE pairings SET used_at = ? WHERE id = ? AND used_at IS NULL",
 );
